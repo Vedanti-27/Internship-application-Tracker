@@ -21,14 +21,10 @@ import java.util.Locale
 
 /**
  * Home dashboard.
- * Experiment 2: home screen
- * Experiment 4: Intents
- * Experiment 5: Broadcast + Notification Reminder with Time Picker
- * Experiment 8: Logout
+ * Supports repeating alarm scheduling (every 24h), alarm ringtone notifications, and canceling alarms.
  */
 class MainActivity : AppCompatActivity() {
 
-    // Default internship used by the "View Details" button on the dashboard.
     private val defaultCompany = "ABC Technologies"
     private val defaultRole = "Software Development Intern"
     private val defaultLocation = "Pune"
@@ -36,7 +32,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
 
-    // Runtime permission launcher for Android 13+ notifications.
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -55,7 +50,6 @@ class MainActivity : AppCompatActivity() {
 
         prefs = getSharedPreferences(LoginActivity.PREFS_NAME, Context.MODE_PRIVATE)
 
-        // Safety check: if nobody is logged in, go back to the login screen.
         if (!prefs.getBoolean(LoginActivity.KEY_IS_LOGGED_IN, false)) {
             openLoginScreen()
             return
@@ -64,7 +58,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         applySystemBarPadding(findViewById(R.id.rootMain))
 
-        // Create the notification channel once, early.
         NotificationHelper.createNotificationChannel(this)
 
         val email = prefs.getString(LoginActivity.KEY_EMAIL, "") ?: ""
@@ -86,6 +79,10 @@ class MainActivity : AppCompatActivity() {
             onSetReminderClicked()
         }
 
+        findViewById<Button>(R.id.btnCancelReminder).setOnClickListener {
+            cancelReminder()
+        }
+
         findViewById<Button>(R.id.btnSavedApplications).setOnClickListener {
             startActivity(Intent(this, ApplicationsActivity::class.java))
         }
@@ -95,17 +92,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ---------- Explicit Intent with extras ----------
     private fun openDetails() {
-        val intent = Intent(this, InternshipDetailsActivity::class.java)
-        intent.putExtra(InternshipDetailsActivity.EXTRA_COMPANY, defaultCompany)
-        intent.putExtra(InternshipDetailsActivity.EXTRA_ROLE, defaultRole)
-        intent.putExtra(InternshipDetailsActivity.EXTRA_LOCATION, defaultLocation)
-        intent.putExtra(InternshipDetailsActivity.EXTRA_STATUS, defaultStatus)
+        val intent = Intent(this, InternshipDetailsActivity::class.java).apply {
+            putExtra(InternshipDetailsActivity.EXTRA_COMPANY, defaultCompany)
+            putExtra(InternshipDetailsActivity.EXTRA_ROLE, defaultRole)
+            putExtra(InternshipDetailsActivity.EXTRA_LOCATION, defaultLocation)
+            putExtra(InternshipDetailsActivity.EXTRA_STATUS, defaultStatus)
+        }
         startActivity(intent)
     }
 
-    // ---------- Notification & Reminder with TimePicker ----------
     private fun onSetReminderClicked() {
         val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(
@@ -127,15 +123,15 @@ class MainActivity : AppCompatActivity() {
         TimePickerDialog(
             this,
             { _, selectedHour, selectedMinute ->
-                scheduleReminder(selectedHour, selectedMinute)
+                scheduleRepeatingReminder(selectedHour, selectedMinute)
             },
             currentHour,
             currentMinute,
-            true // 24-hour format
+            true
         ).show()
     }
 
-    private fun scheduleReminder(hour: Int, minute: Int) {
+    private fun scheduleRepeatingReminder(hour: Int, minute: Int) {
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
@@ -158,29 +154,50 @@ class MainActivity : AppCompatActivity() {
         )
 
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
-        alarmManager?.set(
+        // Schedule alarm to repeat every 24 hours
+        alarmManager?.setRepeating(
             AlarmManager.RTC_WAKEUP,
             calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
             pendingIntent
         )
 
         val timeFormatted = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
-        Toast.makeText(this, "Reminder set for $timeFormatted", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            this,
+            "Daily alarm set for $timeFormatted (repeats every 24 hours)",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
-    // ---------- Logout ----------
+    private fun cancelReminder() {
+        val intent = Intent(this, InternshipReminderReceiver::class.java).apply {
+            action = InternshipReminderReceiver.ACTION_INTERNSHIP_REMINDER
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            1001,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+        alarmManager?.cancel(pendingIntent)
+
+        Toast.makeText(this, "Daily alarm / reminder canceled", Toast.LENGTH_SHORT).show()
+    }
+
     private fun logout() {
-        // Clear SharedPreferences session
         prefs.edit().clear().apply()
-
         Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
-
         openLoginScreen()
     }
 
     private fun openLoginScreen() {
-        val intent = Intent(this, LoginActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
         startActivity(intent)
         finish()
     }
