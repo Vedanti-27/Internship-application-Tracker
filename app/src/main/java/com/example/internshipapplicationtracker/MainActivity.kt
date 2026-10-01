@@ -20,8 +20,8 @@ import java.util.Calendar
 import java.util.Locale
 
 /**
- * Home dashboard.
- * Supports repeating alarm scheduling (every 24h), alarm ringtone notifications, and canceling alarms.
+ * Home dashboard for students.
+ * Displays application counts (Applied, Running, Completed), features repeating alarm scheduling (every 24h), and alarm cancel option.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -31,6 +31,10 @@ class MainActivity : AppCompatActivity() {
     private val defaultStatus = "Open"
 
     private lateinit var prefs: SharedPreferences
+
+    private lateinit var tvUserAppliedCount: TextView
+    private lateinit var tvUserRunningCount: TextView
+    private lateinit var tvUserCompletedCount: TextView
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -58,12 +62,32 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         applySystemBarPadding(findViewById(R.id.rootMain))
 
+        tvUserAppliedCount = findViewById(R.id.tvUserAppliedCount)
+        tvUserRunningCount = findViewById(R.id.tvUserRunningCount)
+        tvUserCompletedCount = findViewById(R.id.tvUserCompletedCount)
+
         NotificationHelper.createNotificationChannel(this)
 
         val email = prefs.getString(LoginActivity.KEY_EMAIL, "") ?: ""
         findViewById<TextView>(R.id.tvUserEmail).text = "Logged in as: $email"
 
         setupButtons()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateStudentCounts()
+    }
+
+    private fun updateStudentCounts() {
+        val userId = prefs.getLong(LoginActivity.KEY_USER_ID, -1L)
+        val dbHelper = DatabaseHelper(this)
+        val counts = dbHelper.getApplicationCounts(userId)
+        dbHelper.close()
+
+        tvUserAppliedCount.text = counts.totalApplied.toString()
+        tvUserRunningCount.text = counts.runningCount.toString()
+        tvUserCompletedCount.text = counts.completedCount.toString()
     }
 
     private fun setupButtons() {
@@ -138,7 +162,7 @@ class MainActivity : AppCompatActivity() {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
             if (before(Calendar.getInstance())) {
-                add(Calendar.DATE, 1) // Set for tomorrow if the time has already passed today
+                add(Calendar.DATE, 1)
             }
         }
 
@@ -154,7 +178,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
-        // Schedule alarm to repeat every 24 hours
         alarmManager?.setRepeating(
             AlarmManager.RTC_WAKEUP,
             calendar.timeInMillis,

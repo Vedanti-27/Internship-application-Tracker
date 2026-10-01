@@ -41,6 +41,13 @@ data class ApplicationRecord(
     val location: String
 )
 
+/** Counts summary for dashboard statistics. */
+data class ApplicationCounts(
+    val totalApplied: Int,
+    val runningCount: Int,
+    val completedCount: Int
+)
+
 /** Result of trying to save an application. */
 enum class SaveResult {
     SAVED,
@@ -443,6 +450,14 @@ class DatabaseHelper(context: Context) :
             }
         }
         return list
+    }
+
+    fun getApplicationCounts(userId: Long = -1L): ApplicationCounts {
+        val apps = getApplications(userId)
+        val total = apps.size
+        val running = apps.count { it.status.equals("Running", ignoreCase = true) || it.status.equals("In Progress", ignoreCase = true) }
+        val completed = apps.count { it.status.equals("Completed", ignoreCase = true) }
+        return ApplicationCounts(totalApplied = total, runningCount = running, completedCount = completed)
     }
 
     fun saveInternshipApplication(

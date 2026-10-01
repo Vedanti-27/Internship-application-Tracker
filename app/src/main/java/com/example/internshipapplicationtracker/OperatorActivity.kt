@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -16,9 +17,13 @@ import androidx.appcompat.app.AppCompatActivity
 /**
  * Operator / Admin Dashboard:
  * Allows operators to post new companies/internships, manage existing company listings,
- * and view/manage applications submitted by multiple users.
+ * view overall statistics, and view/manage applications submitted by multiple users.
  */
 class OperatorActivity : AppCompatActivity() {
+
+    private lateinit var tvOpAppliedCount: TextView
+    private lateinit var tvOpRunningCount: TextView
+    private lateinit var tvOpCompletedCount: TextView
 
     private lateinit var etCompany: EditText
     private lateinit var etRole: EditText
@@ -47,6 +52,10 @@ class OperatorActivity : AppCompatActivity() {
         setContentView(R.layout.activity_operator)
         applySystemBarPadding(findViewById(R.id.rootOperator))
 
+        tvOpAppliedCount = findViewById(R.id.tvOpAppliedCount)
+        tvOpRunningCount = findViewById(R.id.tvOpRunningCount)
+        tvOpCompletedCount = findViewById(R.id.tvOpCompletedCount)
+
         etCompany = findViewById(R.id.etOpCompany)
         etRole = findViewById(R.id.etOpRole)
         etLocation = findViewById(R.id.etOpLocation)
@@ -67,9 +76,23 @@ class OperatorActivity : AppCompatActivity() {
         btnOpLogout.setOnClickListener {
             logout()
         }
+    }
 
+    override fun onResume() {
+        super.onResume()
+        updateDashboardCounts()
         loadCompanies()
         loadAllApplications()
+    }
+
+    private fun updateDashboardCounts() {
+        val dbHelper = DatabaseHelper(this)
+        val counts = dbHelper.getApplicationCounts(-1L) // Fetch overall statistics across all students
+        dbHelper.close()
+
+        tvOpAppliedCount.text = counts.totalApplied.toString()
+        tvOpRunningCount.text = counts.runningCount.toString()
+        tvOpCompletedCount.text = counts.completedCount.toString()
     }
 
     private fun addCompany() {
@@ -142,7 +165,7 @@ class OperatorActivity : AppCompatActivity() {
             card.findViewById<TextView>(R.id.tvItemDate).text = "Phone: ${company.phone}"
             card.findViewById<TextView>(R.id.tvItemStatus).text = "Active Posting"
 
-            card.findViewById<Button>(R.id.btnToggleStatus).visibility = android.view.View.GONE
+            card.findViewById<View>(R.id.btnToggleStatus).visibility = View.GONE
 
             card.findViewById<ImageView>(R.id.btnDelete).setOnClickListener {
                 confirmDeleteCompany(company.id, company.companyName)
@@ -172,8 +195,10 @@ class OperatorActivity : AppCompatActivity() {
     private fun loadAllApplications() {
         containerAllApplications.removeAllViews()
         val dbHelper = DatabaseHelper(this)
-        val applications = dbHelper.getApplications(-1L) // Fetch all student applications
+        val applications = dbHelper.getApplications(-1L)
         dbHelper.close()
+
+        updateDashboardCounts()
 
         if (applications.isEmpty()) {
             val emptyTv = TextView(this).apply {
