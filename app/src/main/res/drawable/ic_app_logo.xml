@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Outer rounded square background -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M5,2 L19,2 C20.66,2 22,3.34 22,5 L22,19 C22,20.66 20.66,22 19,22 L5,22 C3.34,22 2,20.66 2,19 L2,5 C2,3.34 3.34,2 5,2 Z" />
+    <!-- Briefcase body -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,6h-4V4c0-1.11-0.89-2-2-2h-4C8.89,2,8,2.89,8,4v2H4C2.89,6,2,6.89,2,8v11c0,1.11,0.89,2,2,2h16c1.11,0,2-0.89,2-2V8C22,6.89,21.11,6,20,6z M10,4h4v2h-4V4z M20,19H4V8h16V19z" />
+    <!-- Inner emblem -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M12,9l1.5,3.5L17,13l-2.5,2.5L15,19l-3-1.8L9,19l0.5-3.5L7,13l3.5-0.5z" />
+</vector>
