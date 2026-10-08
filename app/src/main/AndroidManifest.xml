@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Experiment 5: Notifications on Android 13+ -->
+    <!-- Notifications permission for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Experiment 6: SMS using SmsManager -->
+    <!-- SMS permission using SmsManager -->
     <uses-permission android:name="android.permission.SEND_SMS" />
+
+    <!-- Boot completed permission for system broadcast receiver -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- App can also install on devices without telephony -->
     <uses-feature
@@ -52,12 +55,12 @@
             android:name=".OperatorActivity"
             android:exported="false" />
 
-        <!-- Experiment 4: Service -->
+        <!-- Started Service -->
         <service
             android:name=".InternshipService"
             android:exported="false" />
 
-        <!-- Experiment 5: Broadcast Receiver -->
+        <!-- Custom Broadcast Receiver (Reminder Alarm) -->
         <receiver
             android:name=".InternshipReminderReceiver"
             android:exported="false">
@@ -65,6 +68,18 @@
             <intent-filter>
                 <action
                     android:name="com.example.internshipapplicationtracker.ACTION_INTERNSHIP_REMINDER" />
+            </intent-filter>
+
+        </receiver>
+
+        <!-- System Broadcast Receiver (Device Boot Completed) -->
+        <receiver
+            android:name=".BootCompletedReceiver"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
 
         </receiver>
